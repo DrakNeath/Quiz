@@ -1,0 +1,1331 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>Quizshow Offline Test</title>
+<link href="https://fonts.cdnfonts.com/css/one-day" rel="stylesheet">
+<style>
+*{box-sizing:border-box;font-family:Arial,sans-serif}
+body{margin:0;background:radial-gradient(circle at top,#253763,#070812);color:white;min-height:100vh}
+header{text-align:center;padding:25px;font-size:36px;font-weight:bold;letter-spacing:1px}
+.container{max-width:1250px;margin:auto;padding:20px}
+.card{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.14);border-radius:22px;padding:20px;margin-bottom:20px;box-shadow:0 15px 35px rgba(0,0,0,.35);backdrop-filter:blur(10px)}
+input,select{width:100%;padding:13px;margin:7px 0;border:0;border-radius:12px;font-size:16px}
+button{border:0;border-radius:14px;padding:12px 18px;margin:5px;font-weight:bold;cursor:pointer;background:linear-gradient(135deg,#00d4ff,#7c4dff);color:white}
+button:disabled{opacity:.45;cursor:not-allowed}
+.danger{background:linear-gradient(135deg,#ff3b3b,#900)}
+.success{background:linear-gradient(135deg,#00c853,#009624)}
+.warning{background:linear-gradient(135deg,#ffb300,#ff6f00)}
+.hidden{display:none}
+.layout{
+display:grid;
+grid-template-columns:minmax(620px,1fr) 360px minmax(620px,1fr);
+column-gap:40px;
+align-items:start;
+justify-content:center;
+padding:0 20px;
+overflow:visible;
+}
+
+.player,.hostCard{background:rgba(255,255,255,.12);border-radius:18px;padding:15px;text-align:center;margin-bottom:12px;transition:.25s;border:3px solid transparent}
+.player.logged{border-color:#00aaff;box-shadow:0 0 22px rgba(0,170,255,.75)}
+.player.currentTurn{border-color:#00ff66;box-shadow:0 0 28px rgba(0,255,102,.9);background:rgba(0,255,102,.16)}
+.player.topVoted{border-color:#ff3b3b;box-shadow:0 0 25px rgba(255,59,59,.9);background:rgba(255,59,59,.22)}
+.out{opacity:.35;filter:grayscale(1)}
+.name{font-size:22px;font-weight:bold}
+.lives{font-size:28px;margin:8px}
+.loggedText{color:#00c8ff;font-weight:bold;margin-top:8px}
+.timer{font-size:60px;font-weight:bold;margin:25px}
+.vote-open{color:#00ff99;font-weight:bold;font-size:22px}
+.vote-closed{color:#ff5555;font-weight:bold;font-size:22px}
+.cameraBox,.hostCameraBox{
+  width:100%;
+  max-width:280px;
+  aspect-ratio:16/9;
+  background:#000;
+  border-radius:18px;
+  overflow:hidden;
+  margin:0 auto 10px auto;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:#777;
+}
+.cameraBox iframe,.cameraBox video,.hostCameraBox iframe,.hostCameraBox video{
+  width:100%;
+  height:100%;
+  border:0;
+  object-fit:cover;
+  border-radius:18px;
+}
+.cameraWrap{position:relative;width:100%;max-width:280px;margin:0 auto 10px auto}
+.cameraWrap .cameraBox{margin:0}
+.resultDots{
+  position:absolute;
+  right:8px;
+  bottom:8px;
+  display:flex;
+  gap:5px;
+  flex-wrap:wrap;
+  justify-content:flex-end;
+  max-width:115px;
+}
+.resultDot{
+  width:18px;
+  height:18px;
+  border-radius:50%;
+  border:2px solid white;
+  box-shadow:0 0 8px rgba(0,0,0,.75);
+}
+.resultDot.red{background:#ff2525}
+.resultDot.green{background:#00d65a}
+.hostCameraBox video{object-position:center 25%;transform:scale(1.08)}
+.hostCameraBox iframe{transform:scale(1.08);transform-origin:center 25%}
+.small{font-size:14px;opacity:.8}
+pre{white-space:pre-wrap;background:rgba(0,0,0,.28);border-radius:14px;padding:12px;font-size:17px;text-align:left}
+.center{text-align:center}
+.hostBottom{margin-top:25px;display:flex;justify-content:center}.hostBottom .hostCard{width:300px;max-width:100%;margin:0 auto;}
+.voteChoice{display:block;width:100%;margin:8px 0;background:rgba(255,255,255,.18)}
+.voteChoice.selected{background:linear-gradient(135deg,#008cff,#0050c8);box-shadow:0 0 15px rgba(0,140,255,.8)}
+.hostVotePanel{margin-top:15px;text-align:left}
+.hostVoteRow{display:flex;justify-content:space-between;gap:10px;border-bottom:1px solid rgba(255,255,255,.15);padding:7px 0}
+.hostVoteRow span:last-child{text-align:right}
+.collapseHeader{display:flex;align-items:center;justify-content:space-between;gap:10px;cursor:pointer;user-select:none}
+.collapseArrow{font-size:26px;transition:.2s}
+.collapseArrow.closed{transform:rotate(-90deg)}
+.questionBox{
+  min-height:105px;
+  background:rgba(0,0,0,.32);
+  border:1px solid rgba(255,255,255,.16);
+  border-radius:20px;
+  padding:18px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  font-size:24px;
+  font-weight:bold;
+  margin:15px 0 20px 0;
+}
+.questionInfo{font-size:14px;opacity:.8;margin-top:5px}
+.answerBox{
+  margin-top:10px;
+  padding:12px;
+  background:rgba(0,0,0,.25);
+  border-radius:14px;
+  font-size:18px;
+}
+
+.roleButtons{
+  display:flex;
+  justify-content:center;
+  gap:20px;
+  flex-wrap:wrap;
+}
+.roleBtn{
+  width:220px;
+  padding:22px;
+  border-radius:20px;
+  font-size:22px;
+  transition:.25s;
+}
+.roleBtn:hover{
+  transform:translateY(-4px) scale(1.03);
+}
+.hostBtn{
+  background:linear-gradient(135deg,#ff9800,#ff5722);
+}
+.playerBtn{
+  background:linear-gradient(135deg,#00bcd4,#3f51b5);
+}
+
+
+#leftPlayers,#rightPlayers{
+display:grid;
+gap:12px;
+align-content:start;
+justify-content:center;
+grid-auto-columns:280px;
+}
+.player{
+width:280px;
+justify-self:center;
+}
+
+.hostVotingBar{
+ display:flex;
+ justify-content:center;
+ gap:10px;
+ flex-wrap:wrap;
+ margin-bottom:12px;
+}
+
+
+#leftPlayers{
+justify-content:end;
+padding-right:10px;
+}
+#rightPlayers{
+justify-content:start;
+padding-left:10px;
+}
+.player{
+margin:0;
+}
+
+@media(max-width:900px){.layout{grid-template-columns:1fr}header{font-size:28px}.roleButtons{flex-direction:column;align-items:center}}
+
+
+body.player-mode #hostVotingBar{display:none !important;}
+
+
+.mainTitle{
+ text-align:center;
+ font-family:'One Day',sans-serif;
+ font-size:58px;
+ letter-spacing:3px;
+ line-height:1;
+ white-space:nowrap;
+ margin:20px 0 30px;
+ user-select:none;
+}
+.container{
+ padding-top:10px !important;
+}
+
+</style>
+</head>
+<body>
+<div id="globalTitle" class="mainTitle">Der Duemmste fliegt</div>
+
+
+
+<div class="container">
+
+  <div class="card center" id="roleScreen">
+
+    
+
+    <div class="roleButtons">
+      <button class="roleBtn hostBtn" onclick="showHostSetup()">
+        <b>Host</b>
+      </button>
+
+      <button class="roleBtn playerBtn" onclick="showPlayerSelection()">
+        <b>Spieler</b>
+      </button>
+    </div>
+
+</div>
+
+  <div class="card hidden" id="hostSetupScreen">
+    <button class="warning" onclick="backToRole()">Zurück</button>
+    <h2>Host einrichten</h2>
+    <input id="hostNameInput" placeholder="Host-Name">
+    <input id="hostCameraLinkInput" placeholder="Optional: Host-Kamera-Link, z. B. VDO.Ninja">
+    <button class="success" onclick="startHostCameraPreview()">Eigene Kamera aktivieren</button>
+    <button onclick="saveHost()">Als Host beitreten</button>
+    <div class="cameraBox" id="hostCameraPreviewBox">Noch keine Host-Kamera</div>
+  </div>
+
+  <div class="card hidden" id="hostScreen" style="max-width:1250px;margin:0 auto;">
+    <div class="collapseHeader" style="max-width:1250px;margin:0 auto;" onclick="toggleHostPanel()">
+      <h2>Host-Bereich</h2>
+      <span id="hostPanelArrow" class="collapseArrow">▼</span>
+    </div>
+
+    <div id="hostPanelContent">
+      <button class="warning" onclick="backToRole()">Zurück</button>
+
+      <div id="addPlayerArea">
+        <h3>Spieler hinzufügen</h3>
+        <input id="newPlayerName" placeholder="Spielername">
+        <button class="success" onclick="addPlayer()">Spieler hinzufügen</button>
+        <p class="small">Der Host fügt nur die Namen hinzu. Spieler können später selbst Kamera/Link ergänzen.</p>
+      </div>
+
+      <h3>Spielsteuerung</h3>
+      <button class="success" onclick="startGame()">Spiel starten</button>
+      <button class="danger" onclick="restartGame()">Spiel neu starten</button>
+
+      <h3>Wer ist dran?</h3>
+      <select id="currentTurnSelect" onchange="setCurrentTurnFromSelect()"></select>
+      <p class="small">Beim Klick auf „Nächste zufällige Frage“ springt der grüne Rahmen automatisch zum nächsten Spieler.</p>
+
+      <h3>Fragekatalog</h3>
+      <input id="questionFileInput" type="file" accept=".txt,.csv,.json" onchange="loadQuestionFile(event)">
+      <button class="warning" onclick="resetQuestionPool()">Fragen zurücksetzen</button>
+      <p class="small" id="questionFileStatus">Noch kein Fragekatalog geladen.</p>
+
+      <h3>Timer</h3>
+      <input id="timerInput" type="number" placeholder="Sekunden eingeben, z. B. 30">
+      
+      <h3>Spieler entfernen</h3>
+      <select id="removePlayerSelect"></select>
+      <button class="danger" onclick="removeSelectedPlayer()">Spieler entfernen</button>
+    </div>
+  </div>
+
+  <div class="card hidden" id="playerSelectScreen">
+    <button class="warning" onclick="backToRole()">Zurück</button>
+    <h2>Spieler auswählen</h2>
+    <select id="playerSelect"></select>
+
+    <h3>Eigene Kamera optional hinzufügen</h3>
+    <input id="playerCameraLinkInput" placeholder="Optional: Kamera-Link, z. B. VDO.Ninja">
+    <button class="success" onclick="startPlayerCameraPreview()">Eigene Kamera aktivieren</button>
+    <div class="cameraBox" id="playerCameraPreviewBox">Noch keine Spieler-Kamera</div>
+
+    <button class="success" onclick="loginSelectedPlayer()">Als Spieler beitreten</button>
+  </div>
+
+  <div class="hidden layout" id="gameScreen">
+
+    <div id="leftPlayers"></div>
+
+    <div class="card center">
+      <button class="warning" onclick="backToRole()">Zurück</button>
+      <h2 id="gameTitle">Warte auf Spielstart</h2>
+
+      <div id="hostQuestionArea">
+        <h3>Aktuelle Frage</h3>
+        <div class="questionBox" id="currentQuestionBox">Noch keine Frage gewählt</div>
+        <div id="answerControls" class="hidden">
+          <button class="success" onclick="markCurrentAnswer(true)">Richtig</button>
+          <button class="danger" onclick="markCurrentAnswer(false)">Falsch</button>
+          <button class="warning" onclick="resetAnswerMarks()">Auswertung zurücksetzen</button>
+        </div>
+        <div class="answerBox" id="currentAnswerBox">Antwort: -</div>
+        <div class="questionInfo" id="questionCounter">Fragen: 0 / 0 verwendet</div>
+      </div>
+
+      
+
+      <div id="votingStatus" class="vote-closed">Voting gesperrt</div>
+      <div class="timer" id="timerDisplay">00:00</div>
+
+      <div id="hostTimerControls" class="hidden">
+        <button id="timerToggleBtn" class="success" onclick="toggleTimer()">Timer starten</button>
+        <button class="warning" onclick="resetTimer()">Zurücksetzen</button>
+      </div>
+
+      <div id="votingMenu">
+        <h3>Voting</h3>
+        <div id="voteButtons"></div>
+        <button id="confirmVoteBtn" class="success hidden" onclick="confirmVote()">Vote einloggen</button>
+      </div>
+
+      <div id="hostVotePanel" class="hostVotePanel hidden">
+        <h3>Host-Übersicht</h3>
+        <div id="hostVoteDetails"></div>
+        <h3>Aktuelle Stimmen</h3>
+        <pre id="hostVoteCounts">Noch keine Votes</pre>
+      </div>
+
+      <h3 id="resultTitle" class="hidden">Endergebnis</h3>
+      <pre id="voteResult" class="hidden">Noch keine Votes</pre>
+
+      <div id="hostVotingBar" class="hostVotingBar hidden" style="display:flex;flex-direction:column;align-items:center;gap:18px;margin-top:18px;">
+<div id="hostVotingTitle" style="font-size:22px;font-weight:bold;">Voting</div>
+<div id="hostVotingStatus" class="vote-closed">Voting gesperrt</div>
+<div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;">
+<button class="success" onclick="openVoting()">Voting starten</button>
+<button class="danger" onclick="closeVoting()">Voting beenden</button>
+<button class="warning" onclick="resetVotes()">Votes zurücksetzen</button>
+</div>
+</div>
+<div class="hostBottom" id="hostBottom"></div>
+    </div>
+
+    <div id="rightPlayers"></div>
+
+  </div>
+
+</div>
+
+<script>
+let mode = "";
+let currentPlayer = "";
+let players = [];
+let host = { name:"", cameraUrl:"", cameraStream:null };
+
+let gameStarted = false;
+let votingOpen = false;
+let votes = {};
+let lockedVotes = {};
+let selectedVoteTargetId = null;
+let selectedLoserId = null;
+let showFinalResult = false;
+
+let hostPanelOpen = true;
+let questions = [];
+let usedQuestionIndexes = [];
+let currentQuestion = "Noch keine Frage gewählt";
+let currentAnswer = "-";
+let currentTurnIndex = -1;
+
+let timerSeconds = 0;
+let timerInterval = null;
+let pendingPlayerCameraStream = null;
+
+function hideAll(){
+  document.getElementById("roleScreen").classList.add("hidden");
+  document.getElementById("hostSetupScreen").classList.add("hidden");
+  document.getElementById("hostScreen").classList.add("hidden");
+  document.getElementById("playerSelectScreen").classList.add("hidden");
+  document.getElementById("gameScreen").classList.add("hidden");
+}
+
+function backToRole(){
+  mode = "";
+  currentPlayer = "";
+  selectedVoteTargetId = null;
+  hideAll();
+  document.getElementById("roleScreen").classList.remove("hidden");
+  if(typeof showOnlyRoleScreenHard === "function") showOnlyRoleScreenHard();
+}
+
+function showHostSetup(){
+  mode = "host";
+  hideAll();
+  document.getElementById("hostSetupScreen").classList.remove("hidden");
+}
+
+async function startHostCameraPreview(){
+  try{
+    const stream = await navigator.mediaDevices.getUserMedia({ video:true, audio:false });
+    host.cameraStream = stream;
+    host.cameraUrl = "";
+    document.getElementById("hostCameraLinkInput").value = "";
+    document.getElementById("hostCameraPreviewBox").innerHTML = `<video id="hostPreviewVideo" autoplay muted playsinline></video>`;
+    document.getElementById("hostPreviewVideo").srcObject = stream;
+  }catch(error){
+    alert("Kamera konnte nicht gestartet werden. Bitte Browser-Berechtigung prüfen.");
+  }
+}
+
+function saveHost(){
+  const name = document.getElementById("hostNameInput").value.trim();
+  const link = document.getElementById("hostCameraLinkInput").value.trim();
+
+  if(!name){ alert("Bitte Host-Namen eingeben."); return; }
+
+  host.name = name;
+  if(link){ host.cameraUrl = link; host.cameraStream = null; }
+
+  hideAll();
+  document.getElementById("hostScreen").classList.remove("hidden");
+  document.getElementById("gameScreen").classList.remove("hidden");
+  render();
+}
+
+function showPlayerSelection(){
+  mode = "player";
+  hideAll();
+  document.getElementById("playerSelectScreen").classList.remove("hidden");
+  renderPlayerSelect();
+}
+
+function renderPlayerSelect(){
+  const select = document.getElementById("playerSelect");
+  select.innerHTML = "";
+
+  if(players.length === 0){
+    const option = document.createElement("option");
+    option.innerText = "Noch keine Spieler vorhanden";
+    option.value = "";
+    select.appendChild(option);
+    return;
+  }
+
+  players.forEach(p => {
+    const option = document.createElement("option");
+    option.value = p.name;
+    option.innerText = p.name;
+    select.appendChild(option);
+  });
+}
+
+async function startPlayerCameraPreview(){
+  try{
+    const stream = await navigator.mediaDevices.getUserMedia({ video:true, audio:false });
+    pendingPlayerCameraStream = stream;
+    document.getElementById("playerCameraLinkInput").value = "";
+    document.getElementById("playerCameraPreviewBox").innerHTML = `<video id="playerPreviewVideo" autoplay muted playsinline></video>`;
+    document.getElementById("playerPreviewVideo").srcObject = stream;
+  }catch(error){
+    alert("Kamera konnte nicht gestartet werden. Bitte Browser-Berechtigung prüfen.");
+  }
+}
+
+function loginSelectedPlayer(){
+  const name = document.getElementById("playerSelect").value;
+  const cameraLink = document.getElementById("playerCameraLinkInput").value.trim();
+
+  if(!name){ alert("Es wurde noch kein Spieler vom Host hinzugefügt."); return; }
+
+  const player = players.find(p => p.name === name);
+  if(!player){ alert("Spieler wurde nicht gefunden."); return; }
+
+  if(cameraLink){ player.cameraUrl = cameraLink; player.cameraStream = null; }
+  if(pendingPlayerCameraStream){ player.cameraStream = pendingPlayerCameraStream; player.cameraUrl = ""; }
+
+  currentPlayer = name;
+  selectedVoteTargetId = null;
+  hideAll();
+  document.getElementById("gameScreen").classList.remove("hidden");
+  render();
+}
+
+function addPlayer(){
+  if(gameStarted){ alert("Das Spiel läuft bereits. Es können keine Spieler mehr hinzugefügt werden."); return; }
+
+  const name = document.getElementById("newPlayerName").value.trim();
+  if(!name){ alert("Bitte Spielernamen eingeben."); return; }
+
+  if(players.find(p => p.name.toLowerCase() === name.toLowerCase())){
+    alert("Spieler gibt es schon.");
+    return;
+  }
+
+  players.push({
+    id: Date.now() + Math.random(),
+    name,
+    cameraUrl:"",
+    cameraStream:null,
+    marks:[],
+    lives:3,
+    out:false
+  });
+
+  if(currentTurnIndex === -1) currentTurnIndex = 0;
+  document.getElementById("newPlayerName").value = "";
+  render();
+}
+
+
+function toggleHostPanel(){
+  hostPanelOpen = !hostPanelOpen;
+  const content = document.getElementById("hostPanelContent");
+  const arrow = document.getElementById("hostPanelArrow");
+
+  content.classList.toggle("hidden", !hostPanelOpen);
+  arrow.classList.toggle("closed", !hostPanelOpen);
+  arrow.innerText = hostPanelOpen ? "▼" : "▶";
+}
+
+function loadQuestionFile(event){
+  const file = event.target.files[0];
+  if(!file) return;
+
+  const reader = new FileReader();
+
+  reader.onload = function(e){
+    const text = e.target.result;
+
+    let loaded = [];
+
+    if(file.name.toLowerCase().endsWith(".json")){
+      try{
+        const data = JSON.parse(text);
+        if(Array.isArray(data)){
+          loaded = data
+            .map(x => {
+              if(typeof x === "string"){
+                return { frage: x, antwort: "-" };
+              }
+              return {
+                frage: x.frage || x.question || "",
+                antwort: x.antwort || x.answer || "-"
+              };
+            })
+            .filter(x => x.frage);
+        }
+      }catch(error){
+        alert("JSON-Datei konnte nicht gelesen werden.");
+        return;
+      }
+    } else {
+      loaded = text
+        .split(/\r?\n/)
+        .map(line => line.trim())
+        .filter(line => line.length > 0)
+        .map(line => {
+          const parts = line.split("|");
+          return {
+            frage: (parts[0] || "").trim(),
+            antwort: (parts[1] || "-").trim()
+          };
+        })
+        .filter(x => x.frage);
+    }
+
+    if(loaded.length === 0){
+      alert("Keine Fragen in der Datei gefunden. Nutze pro Zeile eine Frage.");
+      return;
+    }
+
+    questions = loaded;
+    usedQuestionIndexes = [];
+    currentQuestion = "Fragekatalog geladen."; currentAnswer = "-";
+    updateQuestionStatus();
+    nextRandomQuestion();
+  };
+
+  reader.readAsText(file, "UTF-8");
+}
+
+function nextRandomQuestion(shouldAdvanceTurn = false){
+  if(questions.length === 0){
+    render();
+    alert("Bitte zuerst einen Fragekatalog laden.");
+    return;
+  }
+
+  if(usedQuestionIndexes.length >= questions.length){
+    currentQuestion = "Alle Fragen wurden bereits verwendet.";
+    currentAnswer = "-";
+    updateQuestionStatus();
+    render();
+    alert("Alle Fragen wurden bereits gestellt. Du kannst die Fragen zurücksetzen.");
+    return;
+  }
+
+  let availableIndexes = [];
+
+  questions.forEach((q, index) => {
+    if(!usedQuestionIndexes.includes(index)){
+      availableIndexes.push(index);
+    }
+  });
+
+  const randomPosition = Math.floor(Math.random() * availableIndexes.length);
+  const questionIndex = availableIndexes[randomPosition];
+
+  usedQuestionIndexes.push(questionIndex);
+  currentQuestion = questions[questionIndex].frage;
+  currentAnswer = questions[questionIndex].antwort || "-";
+
+  if(shouldAdvanceTurn){
+    advanceTurn();
+  }
+
+  updateQuestionStatus();
+  render();
+}
+
+function resetQuestionPool(){
+  usedQuestionIndexes = [];
+
+  if(questions.length > 0){
+    nextRandomQuestion(false);
+  }else{
+    currentQuestion = "Noch keine Frage gewählt";
+    currentAnswer = "-";
+    updateQuestionStatus();
+    render();
+  }
+}
+
+function updateQuestionStatus(){
+  const status = document.getElementById("questionFileStatus");
+  if(status){
+    status.innerText = questions.length > 0
+      ? `Fragekatalog geladen: ${questions.length} Fragen, ${usedQuestionIndexes.length} verwendet.`
+      : "Noch kein Fragekatalog geladen.";
+  }
+}
+
+
+function renderCurrentTurnSelect(){
+  const select = document.getElementById("currentTurnSelect");
+  if(!select) return;
+
+  const oldValue = select.value;
+  select.innerHTML = "";
+
+  if(players.length === 0){
+    const option = document.createElement("option");
+    option.value = "";
+    option.innerText = "Noch keine Spieler";
+    select.appendChild(option);
+    return;
+  }
+
+  players.forEach((p, index) => {
+    const option = document.createElement("option");
+    option.value = String(index);
+    option.innerText = p.name;
+    select.appendChild(option);
+  });
+
+  if(currentTurnIndex < 0 || currentTurnIndex >= players.length){
+    currentTurnIndex = 0;
+  }
+
+  select.value = String(currentTurnIndex);
+}
+
+function setCurrentTurnFromSelect(){
+  const select = document.getElementById("currentTurnSelect");
+  if(!select || select.value === "") return;
+
+  currentTurnIndex = Number(select.value);
+  render();
+}
+
+function advanceTurn(){
+  if(players.length === 0) return;
+
+  if(currentTurnIndex < 0 || currentTurnIndex >= players.length){
+    currentTurnIndex = 0;
+    return;
+  }
+
+  let nextIndex = currentTurnIndex;
+  let tries = 0;
+
+  do{
+    nextIndex = (nextIndex + 1) % players.length;
+    tries++;
+  }while(players[nextIndex].out && tries <= players.length);
+
+  currentTurnIndex = nextIndex;
+}
+
+function startGame(){
+  if(players.length < 2){ alert("Bitte mindestens 2 Spieler hinzufügen."); return; }
+  gameStarted = true;
+  votingOpen = false;
+  votes = {};
+  lockedVotes = {};
+  selectedVoteTargetId = null;
+  selectedLoserId = null;
+  showFinalResult = false;
+  render();
+}
+
+function restartGame(){
+  if(!confirm("Spiel wirklich neu starten? Alle Leben, Votes und Timer werden zurückgesetzt.")) return;
+
+  players.forEach(p => { p.lives = 3; p.out = false; p.marks = []; });
+
+  gameStarted = false;
+  votingOpen = false;
+  votes = {};
+  lockedVotes = {};
+  selectedVoteTargetId = null;
+  selectedLoserId = null;
+  showFinalResult = false;
+  currentTurnIndex = players.length > 0 ? 0 : -1;
+  timerSeconds = 0;
+  clearInterval(timerInterval);
+  render();
+}
+
+function openVoting(){
+  if(!gameStarted){ alert("Starte zuerst das Spiel."); return; }
+
+  votes = {};
+  lockedVotes = {};
+  selectedVoteTargetId = null;
+  selectedLoserId = null;
+  showFinalResult = false;
+  votingOpen = true;
+  render();
+}
+
+function closeVoting(){
+  if(!votingOpen){
+    render();
+    return;
+  }
+  finishVotingAndRemoveLife();
+}
+
+function resetVotes(){
+  votes = {};
+  lockedVotes = {};
+  selectedVoteTargetId = null;
+  selectedLoserId = null;
+  showFinalResult = false;
+  render();
+}
+
+function selectVote(targetId){
+  if(!votingOpen){ alert("Voting ist noch nicht freigegeben."); return; }
+  if(mode !== "player"){ alert("Nur Spieler können voten."); return; }
+  if(lockedVotes[currentPlayer]){ alert("Dein Vote ist bereits eingeloggt."); return; }
+
+  selectedVoteTargetId = targetId;
+  render();
+}
+
+function confirmVote(){
+  if(!votingOpen){ alert("Voting ist noch nicht freigegeben."); return; }
+  if(mode !== "player"){ alert("Nur Spieler können voten."); return; }
+  if(!selectedVoteTargetId){ alert("Bitte erst einen Spieler auswählen."); return; }
+  if(lockedVotes[currentPlayer]){ alert("Dein Vote ist bereits eingeloggt."); return; }
+
+  votes[currentPlayer] = selectedVoteTargetId;
+  lockedVotes[currentPlayer] = true;
+  render();
+}
+
+function loseLife(id){
+  if(mode !== "host") return;
+  const player = players.find(p => String(p.id) === String(id));
+  if(!player) return;
+
+  player.lives = Math.max(0, player.lives - 1);
+  if(player.lives <= 0) player.out = true;
+  render();
+}
+
+function addLife(id){
+  if(mode !== "host") return;
+  const player = players.find(p => String(p.id) === String(id));
+  if(!player) return;
+
+  player.lives = Math.min(3, player.lives + 1);
+  if(player.lives > 0) player.out = false;
+  render();
+}
+
+function getVotingLoserId(){
+  const count = {};
+  Object.values(votes).forEach(id => count[id] = (count[id] || 0) + 1);
+
+  let loserId = null;
+  let maxVotes = 0;
+  let tie = false;
+
+  for(const id in count){
+    if(count[id] > maxVotes){
+      maxVotes = count[id];
+      loserId = id;
+      tie = false;
+    } else if(count[id] === maxVotes){
+      tie = true;
+    }
+  }
+
+  if(maxVotes === 0 || tie) return null;
+  return loserId;
+}
+
+function finishVotingAndRemoveLife(){
+  if(mode !== "host") return;
+
+  const loserId = getVotingLoserId();
+  votingOpen = false;
+  showFinalResult = true;
+
+  if(!loserId){
+    selectedLoserId = null;
+    alert("Keine eindeutige Mehrheit vorhanden.");
+    render();
+    return;
+  }
+
+  const player = players.find(p => String(p.id) === String(loserId));
+  if(player){
+    player.lives = Math.max(0, player.lives - 1);
+    if(player.lives <= 0) player.out = true;
+  }
+
+  selectedLoserId = loserId;
+  render();
+}
+
+
+function toggleTimer(){
+  if(mode !== "host") return;
+
+  if(timerInterval){
+    stopTimer();
+    return;
+  }
+
+  if(timerSeconds <= 0){
+    const input = Number(document.getElementById("timerInput").value);
+    if(!input || input <= 0){
+      alert("Bitte zuerst die Sekunden im Host-Bereich eingeben.");
+      return;
+    }
+    timerSeconds = input;
+  }
+
+  startTimer();
+}
+
+function getCurrentTurnPlayer(){
+  if(currentTurnIndex < 0 || currentTurnIndex >= players.length) return null;
+  return players[currentTurnIndex];
+}
+
+function markCurrentAnswer(isCorrect){
+  if(mode !== "host") return;
+
+  const player = getCurrentTurnPlayer();
+
+  if(!player || player.out){
+    alert("Es ist kein aktiver Spieler ausgewählt.");
+    return;
+  }
+
+  if(!player.marks) player.marks = [];
+
+  player.marks.push(isCorrect ? "green" : "red");
+
+  nextRandomQuestion(true);
+}
+
+function resetAnswerMarks(){
+  if(mode !== "host") return;
+
+  players.forEach(p => {
+    p.marks = [];
+  });
+
+  render();
+}
+
+function makeResultDots(player){
+  if(!player.marks || player.marks.length === 0) return "";
+
+  return `
+    <div class="resultDots">
+      ${player.marks.map(m => `<span class="resultDot ${m}"></span>`).join("")}
+    </div>
+  `;
+}
+
+function startTimer(){
+  if(mode !== "host") return;
+  if(!gameStarted){ alert("Starte zuerst das Spiel."); return; }
+
+  if(timerSeconds <= 0){
+    const input = Number(document.getElementById("timerInput").value);
+    if(!input || input <= 0){ alert("Bitte Sekunden eingeben."); return; }
+    timerSeconds = input;
+  }
+
+  clearInterval(timerInterval);
+
+  const btn=document.getElementById("timerToggleBtn");
+  if(btn){btn.innerText="Timer stoppen";btn.className="warning";}
+
+  timerInterval = setInterval(() => {
+    if(timerSeconds > 0){
+      timerSeconds--;
+      render();
+    } else {
+      clearInterval(timerInterval);
+      votingOpen = false;
+      render();
+      alert("Zeit abgelaufen!");
+    }
+  }, 1000);
+
+  render();
+}
+
+function stopTimer(){
+  clearInterval(timerInterval);
+  timerInterval = null;
+  const btn=document.getElementById("timerToggleBtn");
+  if(btn){btn.innerText="Timer starten";btn.className="success";}
+}
+function resetTimer(){
+  stopTimer();
+
+  const input = Number(document.getElementById("timerInput").value);
+
+  if(input && input > 0){
+    timerSeconds = input;
+  }else{
+    timerSeconds = 0;
+  }
+
+  render();
+}
+
+function formatTime(seconds){
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return String(m).padStart(2,"0") + ":" + String(s).padStart(2,"0");
+}
+
+function makeCameraHtml(person, videoId, isHost = false){
+  const boxClass = isHost ? "hostCameraBox" : "cameraBox";
+
+  if(person.cameraUrl){
+    return `<div class="${boxClass}"><iframe src="${person.cameraUrl}" allow="camera; microphone; autoplay"></iframe></div>`;
+  }
+  if(person.cameraStream){
+    return `<div class="${boxClass}"><video id="${videoId}" autoplay muted playsinline></video></div>`;
+  }
+  return `<div class="${boxClass}">Keine Kamera</div>`;
+}
+
+function attachVideoStream(videoId, stream){
+  setTimeout(() => {
+    const video = document.getElementById(videoId);
+    if(video && stream) video.srcObject = stream;
+  }, 0);
+}
+
+function getPlayerNameById(id){
+  const p = players.find(x => String(x.id) === String(id));
+  return p ? p.name : "-";
+}
+
+function getVoteCountsText(){
+  const count = {};
+  Object.values(votes).forEach(id => count[id] = (count[id] || 0) + 1);
+
+  if(Object.keys(count).length === 0) return "Noch keine Votes";
+
+  let text = "";
+  players.forEach(p => {
+    text += `${p.name}: ${count[p.id] || 0}\n`;
+  });
+  return text;
+}
+
+function renderHostVotePanel(){
+  const panel = document.getElementById("hostVotePanel");
+  const details = document.getElementById("hostVoteDetails");
+  const counts = document.getElementById("hostVoteCounts");
+
+  if(mode !== "host" || !votingOpen){
+    panel.classList.add("hidden");
+    return;
+  }
+
+  panel.classList.remove("hidden");
+  details.innerHTML = "";
+
+  players.forEach(p => {
+    const row = document.createElement("div");
+    row.className = "hostVoteRow";
+
+    const votedTargetId = votes[p.name];
+    const votedName = votedTargetId ? getPlayerNameById(votedTargetId) : "wartet...";
+
+    row.innerHTML = `
+      <span>${p.name}</span>
+      <span>${lockedVotes[p.name] ? "Eingeloggt" : "Offen"} → ${votedName}</span>
+    `;
+
+    details.appendChild(row);
+  });
+
+  counts.innerText = getVoteCountsText();
+}
+
+
+function updateRemovePlayerSelect(){
+ const s=document.getElementById('removePlayerSelect');
+ if(!s)return;
+ s.innerHTML='';
+ players.forEach((p,i)=>{
+   const o=document.createElement('option');
+   o.value=i;o.textContent=p.name;
+   s.appendChild(o);
+ });
+}
+function removeSelectedPlayer(){
+ const s=document.getElementById('removePlayerSelect');
+ if(!s||s.value==='') return;
+ const idx=Number(s.value);
+ players.splice(idx,1);
+ if(currentTurnIndex>=players.length) currentTurnIndex=players.length-1;
+ render();
+}
+
+function render(){
+  document.body.classList.toggle('player-mode', mode==='player');
+  document.body.classList.toggle('host-mode', mode==='host');
+
+  document.getElementById("timerDisplay").innerText = formatTime(timerSeconds);
+  document.getElementById("gameTitle").innerText = gameStarted ? "Spiel läuft" : "Warte auf Spielstart";
+  document.getElementById("currentQuestionBox").innerText = currentQuestion;
+  const answerBox = document.getElementById("currentAnswerBox");
+  if(answerBox) answerBox.innerText = "Antwort: " + currentAnswer;
+
+  const answerControls = document.getElementById("answerControls");
+  if(answerControls){
+    answerControls.classList.toggle("hidden", mode !== "host");
+  }
+  document.getElementById("questionCounter").innerText = `Fragen: ${usedQuestionIndexes.length} / ${questions.length} verwendet`;
+  renderCurrentTurnSelect();
+  updateRemovePlayerSelect();
+  document.getElementById('hostVotingBar').style.display = (mode === 'host') ? 'flex' : 'none';
+
+  const hostQuestionArea = document.getElementById("hostQuestionArea");
+  if(mode === "host"){
+    hostQuestionArea.classList.remove("hidden");
+  } else {
+    hostQuestionArea.classList.add("hidden");
+  }
+
+  const addPlayerArea = document.getElementById("addPlayerArea");
+  if(addPlayerArea) addPlayerArea.style.display = gameStarted ? "none" : "block";
+
+  const status = document.getElementById("votingStatus");
+  status.innerText = votingOpen ? "Voting läuft" : "Voting gesperrt";
+  status.className = votingOpen ? "vote-open" : "vote-closed";
+  if(mode==="host"){
+    status.style.display="none";
+    const hs=document.getElementById("hostVotingStatus");
+    if(hs){
+      hs.innerText=status.innerText;
+      hs.className=status.className;
+      const ht=document.getElementById("hostVotingTitle");
+      if(ht){
+        ht.style.display = votingOpen ? "none" : "";
+      }
+    }
+  }else{
+    status.style.display="";
+  }
+
+  const left = document.getElementById("leftPlayers");
+  const right = document.getElementById("rightPlayers");
+  const voteButtons = document.getElementById("voteButtons");
+  const confirmBtn = document.getElementById("confirmVoteBtn");
+  const votingMenu = document.getElementById("votingMenu");
+  const hostBottom = document.getElementById("hostBottom");
+  const hostTimerControls=document.getElementById("hostTimerControls");
+  const voteResult = document.getElementById("voteResult");
+  const resultTitle = document.getElementById("resultTitle");
+
+  left.innerHTML = "";
+  right.innerHTML = "";
+  voteButtons.innerHTML = "";
+  const doubleCols = players.length>8;
+  left.style.gridTemplateColumns = doubleCols ? "repeat(2,280px)" : "280px";
+  right.style.gridTemplateColumns = doubleCols ? "repeat(2,280px)" : "280px";
+
+
+  if(votingMenu){
+    votingMenu.classList.toggle("hidden", !votingOpen);
+  }
+  hostBottom.innerHTML = "";
+  if(hostTimerControls){hostTimerControls.classList.toggle("hidden", mode!=="host");}
+
+  players.forEach((p,index) => {
+    const div = document.createElement("div");
+    const videoId = "video_" + String(p.id).replaceAll(".","_");
+    const isLogged = !!lockedVotes[p.name];
+    const isTopVoted = String(p.id) === String(selectedLoserId);
+    const isCurrentTurn = index === currentTurnIndex && !p.out;
+
+    div.className = "player" + (p.out ? " out" : "") + (isLogged ? " logged" : "") + (isTopVoted ? " topVoted" : "") + (isCurrentTurn ? " currentTurn" : "");
+
+    let hostControls = "";
+    if(mode === "host"){
+      hostControls = `
+        <button class="danger" onclick="loseLife('${p.id}')">- Leben</button>
+        <button class="success" onclick="addLife('${p.id}')">+ Leben</button>
+      `;
+    }
+
+    div.innerHTML = `
+      <div class="cameraWrap">
+        ${makeCameraHtml(p, videoId)}
+        ${makeResultDots(p)}
+      </div>
+      <div class="name">${p.name}</div>
+      <div class="lives">${"❤️".repeat(p.lives)}${"🖤".repeat(3 - p.lives)}</div>
+      ${isLogged ? '<div class="loggedText">Eingeloggt</div>' : ''}
+      ${hostControls}
+    `;
+
+    
+    if(players.length<=8){
+      if(index % 2===0) left.appendChild(div);
+      else right.appendChild(div);
+    }else{
+      const pair=Math.floor(index/2);
+      const targetLeft=(pair%2===0);
+      if(targetLeft) left.appendChild(div);
+      else right.appendChild(div);
+    }
+
+
+    if(p.cameraStream) attachVideoStream(videoId, p.cameraStream);
+
+    if(mode === "player" && votingOpen && !lockedVotes[currentPlayer] && !p.out && p.name !== currentPlayer){
+      const btn = document.createElement("button");
+      btn.className = "voteChoice" + (String(selectedVoteTargetId) === String(p.id) ? " selected" : "");
+      btn.innerText = p.name;
+      btn.onclick = () => selectVote(p.id);
+      voteButtons.appendChild(btn);
+    }
+  });
+
+  confirmBtn.classList.add("hidden");
+
+  if(mode === "host"){
+    voteButtons.innerHTML = "<p>Nur Spieler können voten. Der Host sieht die Übersicht unten.</p>";
+  }
+
+  if(mode === "player"){
+    if(!gameStarted){
+      voteButtons.innerHTML = "<p>Warte auf Spielstart.</p>";
+    } else if(!votingOpen){
+      voteButtons.innerHTML = "<p>Voting ist gerade nicht aktiv.</p>";
+    } else if(lockedVotes[currentPlayer]){
+      voteButtons.innerHTML = "<p class='loggedText'>Eingeloggt</p>";
+    } else {
+      confirmBtn.classList.remove("hidden");
+      confirmBtn.disabled = !selectedVoteTargetId;
+    }
+  }
+
+  if(host.name){
+    const hostVideoId = "hostVideo";
+    hostBottom.innerHTML = `
+      <div class="hostCard">
+        ${makeCameraHtml(host, hostVideoId, true)}
+        <div class="name">${host.name}</div>
+      </div>
+    `;
+    if(host.cameraStream) attachVideoStream(hostVideoId, host.cameraStream);
+  }
+
+  renderHostVotePanel();
+
+  if(showFinalResult){
+    resultTitle.classList.remove("hidden");
+    voteResult.classList.remove("hidden");
+    voteResult.innerText = getVoteCountsText();
+  } else {
+    resultTitle.classList.add("hidden");
+    voteResult.classList.add("hidden");
+  }
+}
+</script>
+
+
+
+<script>
+window.addEventListener("DOMContentLoaded", () => {
+  if (typeof hideAll === "function") {
+    hideAll();
+    const role = document.getElementById("roleScreen");
+    if (role) role.classList.remove("hidden");
+  }
+});
+</script>
+
+<script src="/socket.io/socket.io.js"></script>
+
+<script>
+/* ===========================
+   LIVE-SYNC MIT SOCKET.IO
+   =========================== */
+
+const socket = io();
+let suppressSync = false;
+
+function cloneSerializablePlayer(p){
+  return {
+    id: p.id,
+    name: p.name,
+    cameraUrl: p.cameraUrl || "",
+    marks: p.marks || [],
+    lives: p.lives,
+    out: p.out
+  };
+}
+
+function exportGameState(){
+  return {
+    players: players.map(cloneSerializablePlayer),
+    host: {
+      name: host.name || "",
+      cameraUrl: host.cameraUrl || ""
+    },
+    gameStarted,
+    votingOpen,
+    votes,
+    lockedVotes,
+    selectedLoserId,
+    showFinalResult,
+    questions,
+    usedQuestionIndexes,
+    currentQuestion,
+    currentAnswer,
+    currentTurnIndex,
+    timerSeconds
+  };
+}
+
+function importGameState(state){
+  if(!state) return;
+
+  const oldPlayers = Array.isArray(players) ? players : [];
+
+  players = (state.players || []).map(newPlayer => {
+    const old = oldPlayers.find(p => String(p.id) === String(newPlayer.id) || p.name === newPlayer.name);
+    return {
+      ...newPlayer,
+      cameraStream: old ? old.cameraStream : null
+    };
+  });
+
+  host = {
+    ...host,
+    name: state.host?.name || host.name || "",
+    cameraUrl: state.host?.cameraUrl || host.cameraUrl || ""
+  };
+
+  gameStarted = !!state.gameStarted;
+  votingOpen = !!state.votingOpen;
+  votes = state.votes || {};
+  lockedVotes = state.lockedVotes || {};
+  selectedLoserId = state.selectedLoserId ?? null;
+  showFinalResult = !!state.showFinalResult;
+  questions = state.questions || [];
+  usedQuestionIndexes = state.usedQuestionIndexes || [];
+  currentQuestion = state.currentQuestion || "Noch keine Frage gewählt";
+  currentAnswer = state.currentAnswer || "-";
+  currentTurnIndex = typeof state.currentTurnIndex === "number" ? state.currentTurnIndex : -1;
+  timerSeconds = typeof state.timerSeconds === "number" ? state.timerSeconds : 0;
+}
+
+function sendGameState(){
+  if(suppressSync) return;
+  socket.emit("state:update", exportGameState());
+}
+
+socket.on("state:init", state => {
+  suppressSync = true;
+  importGameState(state);
+  if(typeof render === "function") render();
+  suppressSync = false;
+});
+
+socket.on("state:update", state => {
+  suppressSync = true;
+  importGameState(state);
+  if(typeof render === "function") render();
+  suppressSync = false;
+});
+
+// render() erweitern, damit Änderungen automatisch an alle Tabs/Spieler gesendet werden
+if(typeof render === "function"){
+  const originalRender = render;
+  render = function(){
+    originalRender();
+    sendGameState();
+  };
+}
+</script>
+
+</body>
+</html>
